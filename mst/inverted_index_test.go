@@ -1,6 +1,6 @@
 package mst
 
-import (
+/*import (
 	"fmt"
 	"github.com/syndtr/goleveldb/leveldb"
 	"testing"
@@ -8,18 +8,26 @@ import (
 )
 
 
-func TestFileToKey (t *testing.T) {
+func Test(t *testing.T) {
 	testCount := 10000
 	start := time.Now()
-	var list = []string{"a"}
+	file := File{
+		Name:    "xiyouji",
+		Keys:    []string{"monkey","pig","monk","horse"},
+		Times:   []int{2,4,3,5},
+		WordSum: 0,
+	}
+
+
 	for i := testCount; i > 0; i-- {
-		fileToKey("name", list)
-		//fmt.Println(key_file_list1)
+
+		fmt.Println(key_file_list1)
+
 	}
 	fmt.Println(time.Now().Sub(start))
 }
-
-func TestInsert(t *testing.T) {
+*/
+/*func TestInsert(t *testing.T) {
 	db, _ := leveldb.OpenFile("path/to/db_invert", nil)
 	defer db.Close()
 	index := Inverted_list{Db: db}
@@ -49,4 +57,4 @@ func TestSearch(t *testing.T) {
 
 	index.RenewList()
 	fmt.Println(index)
-}
+}*/

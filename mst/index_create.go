@@ -19,13 +19,13 @@ type File_list struct {
 	Score         float64
 }
 
-type Block_file_list struct {
-
-}
-
 func CreateIndex() *Inverted_list {
-	index := &Inverted_list{0, nil, 0, nil, nil, nil, nil, nil}
+	index := &Inverted_list{0, nil, 0, nil, nil, nil,
+		nil, nil, nil, nil}
 	index.nameToFileList = make(map[string]File_list)
+	index.blockToFileLists = make(map[uint][]File_list)
+	index.blockAvgScore = make(map[uint]map[string]block_key)
+	index.keyToTimes = make(map[string]int)
 	return index
 }
 
@@ -51,22 +51,22 @@ func (in *Inverted_list) putDb(db ethdb.Database) {
 	return t
 }*/
 
-func UpdateIndex(f1 File, blockNumber uint, in *Inverted_list) {
+func (in *Inverted_list) UpdateIndex(f1 File, blockNumber uint) {
 	in.docSum ++
-	index := Inverted_list{Db: in.Db}
-	index.RenewList()
+	//index := Inverted_list{Db: in.Db}
+	//index.RenewList()
 	if f1.WordSum == 0 {
 		f1.calSum()
 	}
-	key_file_list1 := f1.fileToKey(in)
+	key_file_list1 := f1.fileToKey(in, blockNumber)
+
 	for _, j:= range key_file_list1 {
-		index.insert(j)
+		in.insert(j)
 	}
-	index.list_sort()
+	in.list_sort()
 }
 
-
-func (file *File) fileToKey(in *Inverted_list) key_file_list {
+func (file *File) fileToKey(in *Inverted_list, blockNumber uint) key_file_list {
 	var key_file_list1  key_file_list
 	file_list1 := File_list{
 		Name:       file.Name,
@@ -74,18 +74,29 @@ func (file *File) fileToKey(in *Inverted_list) key_file_list {
 		keyToScore: make(map[string]float64),
 		Score:      0,
 	}
+	bk := block_key{
+		time:  0,
+		score: 0,
+	}
 	for i,j := range file.Keys {
 		in.keyToTimes[j]++
 		file_name_list := []string{file.Name}
-		tf := float64(file.Times[i] / file.WordSum)
+		tf := float64(file.Times[i]) / float64(file.WordSum)
 		idf := math.Log2(float64( in.docSum / in.keyToTimes[j] + 1))
 		score := tf * idf
 		file_list1.keyToScore[j] = score
 		key_file1 := key_file{j, file_name_list, []float64{score}, 0}
 		key_file_list1 = append(key_file_list1, key_file1)
+		bk.score = (in.blockAvgScore[blockNumber][j].score + score) / float64(in.blockAvgScore[blockNumber][j].time + 1)
+		bk.time = in.blockAvgScore[blockNumber][j].time + 1
+		c := make(map[string]block_key)
+		c[j] = bk
+		in.blockAvgScore[blockNumber] = c
 	}
+
 	in.nameToFileList[file.Name] = file_list1
 	in.file_list = append(in.file_list, file_list1)
+	in.blockToFileLists[blockNumber]= append(in.blockToFileLists[blockNumber], file_list1)
 	return key_file_list1
 }
 

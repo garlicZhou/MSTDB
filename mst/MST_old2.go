@@ -1,10 +1,11 @@
 package mst
 
+
+
 /*import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
 	"strings"
@@ -13,18 +14,25 @@ package mst
 const MAXLEVEL = 3
 
 type node struct {
-	parent    *node
-	child     []*node
-	childHash [][32]byte
-	key       []string
-	value     []uint
-	hash      [32]byte
-	isLeaf    bool
-	isExtend  bool
+	parentAndChild   []pAndC
+	childHash        [][32]byte
+	//todo: key must be []string
+	key              []string
+	value            []uint
+	hash             [32]byte
+	isLeaf           bool
+	isExtend         bool
+}
+
+type pAndC struct {
+	parent *node
+	child  *node
+	value []uint
 }
 
 type nodekv struct {
 	ChildHash [][32]byte
+	//todo: key must be []string
 	Key       []string
 	Value     []uint
 	Hash      [32]byte
@@ -38,9 +46,10 @@ type index_info struct {
 }
 
 type MST struct {
-	Root     *node
-	RootHash [32]byte
-	Db       ethdb.Database
+	Root        *node
+	RootHash    [32]byte
+	Db          ethdb.Database
+	keyMap      map[string]*node
 }
 
 func new() *MST {
@@ -58,15 +67,39 @@ func (t *MST) PutRootHash() {
 	}
 }
 
-func (t *MST) root_insert(in index_info) {
+func (t *MST) root_insert(in index_info, db ethdb.Database) {
 	li := len(in.key)
 	keys := in.key
 	for i := 0; i < li; i++ {
+		if t.keyMap[keys[i]] == nil {
+			if i == 0 {
+				node_t := &node{parentAndChild: []pAndC{{t.Root, t.keyMap[keys[i+1]], []uint{0}}}, key: keys[i]}
+			    t.keyMap[keys[i]] = node_t
+			} else {
+				node_t := &node{parentAndChild: []pAndC{{t.keyMap[keys[i-1]], t.keyMap[keys[i+1]], []uint{0}}}, key: keys[i]}
+				t.keyMap[keys[i]] = node_t
+			}
+		} else {
+			if i == 0 {
+				t.keyMap[keys[i]].parentAndChild = append(t.keyMap[keys[i]].parentAndChild, pAndC{t.Root, t.keyMap[keys[i+1]], []uint{0}})
+			} else {
+				t.keyMap[keys[i]].parentAndChild = append(t.keyMap[keys[i]].parentAndChild, pAndC{t.keyMap[keys[i-1]], t.keyMap[keys[i+1]], []uint{0}})
+			}
+		}
+		nodekv1 := nodekv{t.keyMap[keys[i]].childHash, t.keyMap[keys[i]].key, t.keyMap[keys[i]].value, t.keyMap[keys[i]].hash,
+			t.keyMap[keys[i]].isLeaf, t.keyMap[keys[i]].isExtend}
+		data, _ := rlp.EncodeToBytes(nodekv1)
+		nodekv1.Hash = sha256.Sum256(data)
+		hash := nodekv1.Hash[:]
+		db.Put(hash, data)
+
+
 		in.key = keys[i:li:li]
 		root1 := t.Root
-		flag := true
-		for r := 0; r < len(root1.child); r++ {
-			if strings.Compare(in.key[0], root1.child[r].key[0]) == 0 {
+		//flag := true
+
+		for r := 0; r < len(root1.parentAndChild); r++ {
+			if strings.Compare(in.key[0], root1.parentAndChild[r].child.key[0]) == 0 {
 				root1.isLeaf = false
 				flag = false
 				root1.child[r].insert(in, t.Db)

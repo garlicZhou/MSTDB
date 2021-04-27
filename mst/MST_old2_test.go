@@ -1,6 +1,6 @@
 package mst
 
-import (
+/*import (
 	"fmt"
 	"github.com/syndtr/goleveldb/leveldb"
 	"testing"
@@ -49,4 +49,4 @@ func TestSearchMst(t *testing.T) {
 	a := []int{1,2,3}
 	la := len(a)
 	fmt.Println(a[3:la:la])
-}
+}*/

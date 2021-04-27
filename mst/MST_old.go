@@ -1,6 +1,6 @@
 package mst
 
-import (
+/*import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -343,3 +343,4 @@ func (t *MST) ReNewMst() {
 	}
 }
 
+*/
